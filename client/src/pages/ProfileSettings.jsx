@@ -5,6 +5,7 @@ import Icon from '../components/Icon';
 import Art from '../components/Illustrations';
 import MediaPicker from '../components/MediaPicker';
 import AvatarGallery from '../components/AvatarGallery';
+import SocialIcon from '../components/SocialIcon';
 import { Avatar, Button, UserName } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { useUi } from '../contexts/UiContext';
@@ -203,7 +204,7 @@ export default function ProfileSettings() {
               <div className="ps-two">
                 {SOCIALS.map(([k, label, ph]) => (
                   <div key={k} className="field">
-                    <label htmlFor={`so-${k}`}>{label}</label>
+                    <label htmlFor={`so-${k}`} className="row" style={{ gap: 8 }}><SocialIcon name={k} size={22} /> {label}</label>
                     <input id={`so-${k}`} className="input" placeholder={ph} value={f.social_links[k] || ''} onChange={(e) => setF({ ...f, social_links: { ...f.social_links, [k]: e.target.value } })} />
                   </div>
                 ))}

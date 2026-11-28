@@ -7,7 +7,7 @@ import AdCard from '../components/AdCard';
 import { Avatar, CardSkeleton, EmptyState, IconLink } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { useUi } from '../contexts/UiContext';
-import { fetchEncouraged, fetchFollowing } from '../services/data';
+import { fetchEncouraged, fetchFeed, fetchFollowing } from '../services/data';
 import { useUnread } from '../hooks/useUnread';
 import Landing from './Landing';
 import LiveRail from '../components/LiveRail';
@@ -19,7 +19,7 @@ import { displayName } from '../lib/format';
 
 /** Filtres du fil. `ranked` : classé par l'algorithme XERA1 (sinon chronologique). */
 const FILTERS = [
-  { key: 'all', label: 'Pour vous', icon: 'auto_awesome', ranked: true },
+  { key: 'all', label: 'Pour vous', icon: 'dynamic_feed', ranked: true },
   { key: 'recent', label: 'Récent', icon: 'schedule' },
   { key: 'following', label: 'Abonnements', icon: 'group', auth: true },
   { key: 'success', label: '#Victoire', icon: 'trending_up' },
@@ -131,10 +131,19 @@ function Feed() {
           list = visible(raw);
         } else if (filter === 'all') {
           // « Pour vous » : plus de candidats, classés par l'algorithme XERA1.
-          const [candidates, follows, badgeSets] = await Promise.all([fetchFeedPage({ limit: 60 }), userId ? fetchFollowing(userId) : [], loadBadgeSets()]);
+          // Candidats : les 60 plus récentes + ce qui marche cette semaine + les dernières des abonnements.
+          const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString();
+          const [recent, follows, badgeSets, trending] = await Promise.all([
+            fetchFeedPage({ limit: 60 }),
+            userId ? fetchFollowing(userId) : [],
+            loadBadgeSets(),
+            fetchFeed({ order: 'top', since: weekAgo, limit: 30 }).catch(() => []),
+          ]);
+          const fromFollows = follows.length ? await fetchFeedPage({ userIds: follows.slice(0, 200), limit: 30 }).catch(() => []) : [];
           followed.current = follows;
-          raw = candidates;
-          list = rankFeed(visible(candidates), { user, followedIds: new Set(follows), badgeSets });
+          raw = recent;
+          const pool = [...new Map([...recent, ...trending, ...fromFollows].map((c) => [c.id, c])).values()];
+          list = rankFeed(visible(pool), { user, followedIds: new Set(follows), badgeSets });
         } else {
           raw = await fetchFeedPage({ filter: filter === 'recent' ? 'all' : filter, limit: PAGE });
           list = visible(raw);
@@ -266,7 +275,7 @@ function Feed() {
               <Icon name="refresh" />
             </button>
           </div>
-          {meta.ranked && <p className="feed-hint"><Icon name="auto_awesome" size={15} /> Classé pour vous selon vos encouragements, vos abonnements et l’élan des projets.</p>}
+          {meta.ranked && <p className="feed-hint"><Icon name="insights" size={15} /> Classé pour vous selon vos encouragements, vos abonnements et l’élan des projets.</p>}
         </div>
 
         {fresh > 0 && (

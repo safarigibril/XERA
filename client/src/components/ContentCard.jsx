@@ -255,12 +255,17 @@ export default function ContentCard({ content, encouraged, milestone, index = 0,
   function hidePost() {
     setMenu(false);
     feedPrefs.toggle(user?.id, 'hidden', content.id);
+    if (user) recordInteraction(user.id, content, 'dislike');
     gone('hidden');
     toast('success', 'Publication masquée', 'Vous ne la verrez plus dans votre fil.');
   }
   function muteAuthor() {
     setMenu(false);
     feedPrefs.toggle(user?.id, 'muted', content.user_id);
+    if (user) {
+      recordInteraction(user.id, content, 'dislike');
+      recordInteraction(user.id, content, 'dislike');
+    }
     gone('muted');
     toast('success', `${authorName} masqué`, 'Ses preuves n’apparaîtront plus dans votre fil.');
   }

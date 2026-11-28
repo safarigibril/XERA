@@ -176,52 +176,82 @@ function authorScores(items) {
   return out;
 }
 
-function interleaveByUser(list) {
-  const buckets = new Map();
-  for (const item of list) {
-    if (!buckets.has(item.user_id)) buckets.set(item.user_id, []);
-    buckets.get(item.user_id).push(item);
-  }
+/**
+ * Re-classement « diversifié » : on prend toujours la meilleure preuve restante,
+ * mais un même auteur ne revient pas avant 3 cartes et chaque nouvelle preuve
+ * d'un auteur déjà montré perd 30 %. Garde l'ordre de pertinence (l'ancien
+ * tourniquet auteur par auteur le cassait) tout en évitant les rafales.
+ */
+function diversify(scored) {
+  const pool = [...scored];
   const out = [];
-  let added = true;
-  while (added) {
-    added = false;
-    for (const l of buckets.values()) {
-      if (l.length) {
-        out.push(l.shift());
-        added = true;
+  const shown = new Map();
+  while (pool.length) {
+    let best = -1;
+    let bestScore = -Infinity;
+    const recent = out.slice(-3).map((c) => c.user_id);
+    for (let i = 0; i < pool.length; i++) {
+      const { c, score } = pool[i];
+      const repeat = shown.get(c.user_id) || 0;
+      let s = score * 0.7 ** repeat;
+      if (recent.includes(c.user_id)) s -= 1000; // en dernier recours seulement
+      // Varier les formats : pas trois textes seuls d'affilée.
+      const lastTwo = out.slice(-2);
+      if (lastTwo.length === 2 && lastTwo.every((x) => x.type === c.type)) s *= 0.9;
+      if (s > bestScore) {
+        bestScore = s;
+        best = i;
       }
     }
+    const [{ c }] = pool.splice(best, 1);
+    out.push(c);
+    shown.set(c.user_id, (shown.get(c.user_id) || 0) + 1);
   }
   return out;
 }
 
 /**
- * Classe les preuves du fil.
+ * Classe les preuves du fil « Pour vous ».
  * @param {object[]} items  lignes content (avec users et arcs joints)
  * @param {object} ctx      { user, followedIds:Set, badgeSets }
+ *
+ * Signaux (ADN XERA : la régularité et la progression comptent plus que la viralité) :
+ *  - fraîcheur (demi-vie ~2 jours) ;
+ *  - engagement total ET vitesse (encouragements par heure : ce qui monte maintenant) ;
+ *  - relation (abonnements, auteurs souvent encouragés) ;
+ *  - régularité du bâtisseur (preuve rattachée à un ARC, numéro de jour, élan du profil) ;
+ *  - qualité (média, texte détaillé, validation par une page pro, créateur vérifié) ;
+ *  - goûts appris (formats, états, auteurs, hashtags, recherches), y compris les
+ *    signaux négatifs (« masquer », « ne plus voir ») ;
+ *  - découverte : un coup de pouce aux preuves toutes neuves de nouveaux créateurs ;
+ *  - déjà vu → descend ; ses propres preuves → plus bas.
  */
 export function rankFeed(items, { user, followedIds = new Set(), badgeSets } = {}) {
   const isFata = (id) => Boolean(badgeSets?.fata?.has(id));
-  if (!user || items.length < 3) {
-    return [...items].sort((a, b) => Number(isFata(b.user_id)) - Number(isFata(a.user_id)));
-  }
-  const prefs = loadPrefs(user.id);
+  if (!items.length) return [];
+  const prefs = loadPrefs(user?.id);
   const authors = authorScores(items);
   const role = viewerRole(user);
   const now = Date.now();
   const topQueries = Object.entries(prefs.queries || {})
     .sort((a, b) => b[1] - a[1])
     .slice(0, 20);
+  const coldStart = (prefs.interactionCount || 0) < 15;
 
   const scored = items.map((c) => {
     const ageH = Math.max(0, (now - Date.parse(c.created_at || now)) / 36e5);
-    const recency = Math.exp(-ageH / 72);
-    const engagement = Math.min(4.2, Math.log1p(c.encouragements_count || 0) * 1.15 + Math.log1p(c.views || 0) * 0.42) * (0.6 + recency * 0.4);
+    const enc = Number(c.encouragements_count) || 0;
+    const views = Number(c.views) || 0;
+    const recency = Math.exp(-ageH / 60);
+    const engagement = Math.min(4.2, Math.log1p(enc) * 1.15 + Math.log1p(views) * 0.42) * (0.6 + recency * 0.4);
+    const velocity = Math.min(2.5, Math.log1p((enc * 3 + views * 0.15) / (ageH + 2)) * 1.6);
     const follow = followedIds.has(c.user_id) ? 2 : 0;
-    const verified = badgeSets && (badgeSets.creators.has(c.user_id) || badgeSets.staff.has(c.user_id)) ? 1.6 : 0;
-    const validation = c.is_validated_pro ? 2.5 : 0;
-    const author = (authors.get(c.user_id) || 0) * 0.85;
+    const verified = badgeSets && (badgeSets.creators.has(c.user_id) || badgeSets.staff.has(c.user_id)) ? 1.2 : 0;
+    const validation = c.is_validated_pro ? 2.2 : 0;
+    const author = (authors.get(c.user_id) || 0) * 0.6;
+    // Régularité : une preuve « Jour N » d'un ARC raconte une progression.
+    const consistency = (c.arc_id ? 0.35 : 0) + (Number(c.day_number) > 1 ? Math.min(0.6, Math.log1p(c.day_number) * 0.18) : 0) + Math.min(0.8, Number(c.users?.momentum_score || 0) * 0.08);
+    const quality = (c.media_url || c.media_urls?.length ? 0.45 : 0) + (String(c.description || '').length > 140 ? 0.25 : 0) + (c.title ? 0.05 : 0);
     const tags = (c.tags || []).map((t) => String(t).toLowerCase());
     const typePref = (prefs.types[c.type] || 0) * 0.45;
     const statePref = (prefs.states[c.state] || 0) * 0.25;
@@ -229,8 +259,12 @@ export function rankFeed(items, { user, followedIds = new Set(), badgeSets } = {
     const tagPref = tags.reduce((n, t) => n + (prefs.tags[t] || 0) * 0.55, 0);
     const text = `${c.title || ''} ${c.description || ''}`.toLowerCase();
     const queryPref = topQueries.reduce((n, [tok, sc]) => n + (text.includes(tok) || tags.includes(tok) ? sc * 0.35 : 0), 0);
-    const seen = prefs.seen?.[c.id] ? 0.8 : 0;
-    const base = recency * 2.2 + engagement + follow + verified + validation + author + roleBoost(c, role) + typePref + statePref + userPref + tagPref + queryPref - seen;
+    const seenAt = prefs.seen?.[c.id];
+    const seen = seenAt ? (now - seenAt < 864e5 ? 1.6 : 0.6) : 0;
+    const discovery = ageH < 8 && enc < 3 && !follow ? 0.7 : 0;
+    const own = user && c.user_id === user.id ? 2.5 : 0;
+    const taste = coldStart ? (typePref + statePref + userPref + tagPref) * 0.5 : typePref + statePref + userPref + tagPref + queryPref;
+    const base = recency * 2.2 + engagement + velocity + follow + verified + validation + author + consistency + quality + roleBoost(c, role) + taste + discovery - seen - own;
     // Lauréats Fata ×5 ; plan du créateur (visibilité promise par les abonnements).
     const plan = String(c.users?.plan || '').toLowerCase();
     const planBoost = c.users?.plan_status === 'active' ? PLAN_BOOST[plan] || 1 : 1;
@@ -238,5 +272,5 @@ export function rankFeed(items, { user, followedIds = new Set(), badgeSets } = {
     return { c, score };
   });
   scored.sort((a, b) => b.score - a.score);
-  return interleaveByUser(scored.map((s) => s.c));
+  return diversify(scored);
 }

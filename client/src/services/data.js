@@ -16,7 +16,7 @@ import {
 } from './demo';
 
 const CONTENT_COLUMNS =
-  `id, user_id, author_id, author_type, page_id, arc_id, day_number, type, state, title, description, media_url, media_urls, views, encouragements_count, tags, metadata, is_validated_pro, created_at, page:professional_pages!content_page_id_fkey(id, name, slug, avatar_url, is_verified), validator:professional_pages!content_validated_by_page_id_fkey(id, name, slug), users(${USER_BADGE_COLUMNS}), arcs(id, title, status, user_id, stage_level, opportunity_intents)`;
+  `id, user_id, author_id, author_type, page_id, arc_id, day_number, type, state, title, description, media_url, media_urls, views, encouragements_count, tags, metadata, is_validated_pro, created_at, page:professional_pages!content_page_id_fkey(id, name, slug, avatar_url, is_verified), validator:professional_pages!content_validated_by_page_id_fkey(id, name, slug), users(${USER_BADGE_COLUMNS}, title, momentum_score), arcs(id, title, status, user_id, stage_level, opportunity_intents)`;
 
 const wait = (ms = 250) => new Promise((r) => setTimeout(r, ms));
 
@@ -27,7 +27,7 @@ function unwrap({ data, error }) {
 
 // ---------------------------------------------------------------- Fil
 
-export async function fetchFeed({ filter = 'all', limit = 24, userIds, before, ids } = {}) {
+export async function fetchFeed({ filter = 'all', limit = 24, userIds, before, ids, since, order = 'recent' } = {}) {
   if (DEMO) {
     await wait();
     return filter === 'all' ? demoContent : demoContent.filter((c) => c.state === filter);
@@ -36,8 +36,9 @@ export async function fetchFeed({ filter = 'all', limit = 24, userIds, before, i
     .from('content')
     .select(CONTENT_COLUMNS)
     .eq('is_deleted', false)
-    .order('created_at', { ascending: false })
+    .order(order === 'top' ? 'encouragements_count' : 'created_at', { ascending: false })
     .limit(limit);
+  if (since) query = query.gte('created_at', since);
   if (['success', 'failure', 'pause'].includes(filter)) query = query.eq('state', filter);
   if (filter === 'video') query = query.eq('type', 'video');
   if (filter === 'media') query = query.in('type', ['image', 'video']);
@@ -422,7 +423,7 @@ export async function fetchNotifications(userId) {
   if (DEMO) return demoNotifications;
   const { data } = await supabase
     .from('notifications')
-    .select('*')
+    .select(`*, actor:users!notifications_actor_id_fkey(${USER_BADGE_COLUMNS})`)
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(60);

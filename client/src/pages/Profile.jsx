@@ -15,7 +15,7 @@ import { openSupport } from '../services/payments';
 import { userCertifications } from '../services/pages';
 import { SOCIALS, normalizePrefs, socialHref } from '../lib/profilePrefs';
 
-const SOCIAL_ICONS = { github: '/icons/github.svg', linkedin: '/icons/linkedin.svg', instagram: '/icons/instagram.svg', discord: '/icons/discord.svg', facebook: '/icons/facebook.svg', email: '/icons/email.svg' };
+import SocialIcon from '../components/SocialIcon';
 import {
   countUserContent,
   fetchFollowCounts,
@@ -291,9 +291,8 @@ export default function Profile() {
         {prefs.privacy.showSocials && socials.length > 0 && (
           <div className="profile-socials">
             {socials.map(([k, label, href]) => (
-              <a key={k} href={href} target={k === 'email' ? undefined : '_blank'} rel="noreferrer" title={label} aria-label={label}>
-                {SOCIAL_ICONS[k] ? <img src={SOCIAL_ICONS[k]} alt="" /> : <Icon name={k === 'site' ? 'language' : 'link'} size={18} />}
-                <span>{label}</span>
+              <a key={k} href={href} target={k === 'email' ? undefined : '_blank'} rel="noopener noreferrer" title={label} aria-label={label}>
+                <SocialIcon name={k} size={36} />
               </a>
             ))}
           </div>

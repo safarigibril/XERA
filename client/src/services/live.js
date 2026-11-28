@@ -66,24 +66,13 @@ export async function createSession(user, { title, description, thumbnailUrl, pr
   return data;
 }
 
-/** Notifie les abonnés (plans Standard, Medium ou Pro actifs, comme avant). */
-export async function notifyFollowers(user, stream) {
-  if (DEMO) return;
-  const plan = String(user.plan || '').toLowerCase();
-  if (!(isPlanActive(user) && ['standard', 'medium', 'pro'].includes(plan))) return;
-  const { data: followers } = await supabase.from('followers').select('follower_id').eq('following_id', user.id);
-  const ids = (followers || []).map((f) => f.follower_id);
-  for (let i = 0; i < ids.length; i += 100) {
-    const rows = ids.slice(i, i + 100).map((fid) => ({
-      user_id: fid,
-      type: 'live_start',
-      message: `🔴 ${user.name || 'Un créateur'} a commencé un live : « ${stream.title} »`,
-      link: `/live/${stream.id}`,
-      read: false,
-    }));
-    await supabase.from('notifications').upsert(rows, { onConflict: 'user_id,type,link' });
-  }
-}
+/**
+ * Les abonnés sont prévenus par la base elle-même (déclencheur
+ * trigger_notify_followers_on_stream à la création du live). L'ancien envoi
+ * côté appli faisait doublon et échouait (upsert sur une contrainte absente).
+ */
+// eslint-disable-next-line no-unused-vars
+export async function notifyFollowers(user, stream) {}
 
 export async function endSession(stream, userId) {
   if (DEMO || !stream?.id) return;

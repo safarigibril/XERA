@@ -979,3 +979,29 @@
   position: absolute; right: 2px; bottom: 2px; width: 20px; height: 20px; border-radius: 50%;
   display: grid; place-items: center; background: var(--violet); color: #fff;
 }
+
+/* ---------- Logos des réseaux (pastilles rondes aux couleurs de marque) ---------- */
+.social-icon {
+  width: var(--s);
+  height: var(--s);
+  flex: none;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  color: var(--fg, #fff);
+}
+.social-icon i {
+  width: 52%;
+  height: 52%;
+  background: currentColor;
+  -webkit-mask: no-repeat center / contain;
+  mask: no-repeat center / contain;
+}
+.social-icon.is-generic {
+  background: var(--surface-3);
+  color: var(--text);
+}
+:root:not([data-theme="light"]) .social-icon[style*="#000000"],
+:root:not([data-theme="light"]) .social-icon[style*="#24292F"] {
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}

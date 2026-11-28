@@ -10,7 +10,7 @@ const ago = (h) => new Date(now - h * 3600e3).toISOString();
 const img = (seed, w = 900, h = 700) => `https://picsum.photos/seed/${seed}/${w}/${h}`;
 
 export const demoUsers = [
-  { id: 'u1', name: 'Amani Kahindo', username: 'amani', avatar: 'https://i.pravatar.cc/160?img=47', title: 'Développeuse mobile · Goma', plan: 'medium', plan_status: 'active', account_type: 'personal', bio: 'Je construis des outils pour les petits commerces du Kivu. Une preuve par jour.', banner: img('xera-banner', 1400, 500), badge: 'verified', account_type: 'personal', followers_count: 1284 },
+  { id: 'u1', name: 'Amani Kahindo', social_links: { linkedin: 'linkedin.com/in/amani', github: 'amani', twitter: '@amani', instagram: '@amani', youtube: 'youtube.com/@amani', site: 'amani.dev' }, username: 'amani', avatar: 'https://i.pravatar.cc/160?img=47', title: 'Développeuse mobile · Goma', plan: 'medium', plan_status: 'active', account_type: 'personal', bio: 'Je construis des outils pour les petits commerces du Kivu. Une preuve par jour.', banner: img('xera-banner', 1400, 500), badge: 'verified', account_type: 'personal', followers_count: 1284 },
   { id: 'u2', name: 'Studio Lumbi', username: 'lumbi', avatar: 'https://i.pravatar.cc/160?img=12', title: 'Design produit', bio: 'Studio de design produit à Goma. Nous aidons les bâtisseurs à rendre leurs outils simples à utiliser.', account_type: 'enterprise', badge: 'verified', plan: 'pro', plan_status: 'active', followers_count: 2400 },
   { id: 'u3', name: 'Jonas Mwamba', username: 'jonas', avatar: 'https://i.pravatar.cc/160?img=33', title: 'Hardware & IoT', account_subtype: 'investor' },
   { id: 'u4', name: 'Grace Neema', username: 'grace', avatar: 'https://i.pravatar.cc/160?img=5', title: 'Agritech' },

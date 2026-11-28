@@ -597,3 +597,72 @@
   .post-actions .react--share { flex: 0 0 44px; }
   .post-actions .react { font-size: 12.5px; }
 }
+
+/* ---------- Lives : photo du créateur en rond, anneau rouge (façon stories) ---------- */
+.live-stories {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px 2px 6px;
+}
+.live-stories::-webkit-scrollbar { display: none; }
+.live-story {
+  position: relative;
+  flex: none;
+  width: 84px;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  text-align: center;
+}
+.live-story-ring {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  padding: 3px;
+  background: conic-gradient(from 210deg, #ef4444, #f97316, #ec4899, #ef4444);
+  display: grid;
+  place-items: center;
+  animation: live-ring 2.4s linear infinite;
+}
+.live-story-ring .avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--bg);
+  box-sizing: content-box;
+  animation: live-ring 2.4s linear infinite reverse;
+}
+@keyframes live-ring { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .live-story-ring, .live-story-ring .avatar { animation: none; }
+}
+.live-story-badge {
+  margin-top: -12px;
+  z-index: 1;
+  padding: 1px 7px;
+  border-radius: 5px;
+  border: 2px solid var(--bg);
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.live-story-name {
+  max-width: 100%;
+  font-size: 12.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.live-story-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11.5px;
+  color: var(--text-3);
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Avatar, UserName } from './ui';
+import { Avatar } from './ui';
+import { displayName } from '../lib/format';
 import Icon from './Icon';
 import { getLiveStreams } from '../services/live';
 
@@ -25,22 +26,17 @@ export default function LiveRail({ title = 'En direct' }) {
           <span className="live-dot" /> {title}
         </h2>
       </div>
-      <div className="live-rail">
+      <div className="live-stories">
         {lives.map((l) => (
-          <Link key={l.id} to={`/live/${l.id}`} className="live-card">
-            <div className="live-card-thumb">
-              {l.thumbnail_url ? <img src={l.thumbnail_url} alt="" loading="lazy" /> : <Avatar user={l.users || {}} size={54} ring />}
-              <span className="live-badge">
-                <i /> LIVE
-              </span>
-              <span className="live-pill">
-                <Icon name="visibility" size={14} /> {l.viewer_count || 0}
-              </span>
-            </div>
-            <div className="live-card-info">
-              <strong>{l.title}</strong>
-              <UserName user={l.users || {}} />
-            </div>
+          <Link key={l.id} to={`/live/${l.id}`} className="live-story" title={l.title}>
+            <span className="live-story-ring">
+              <Avatar user={l.users || {}} size={64} />
+            </span>
+            <span className="live-story-badge">LIVE</span>
+            <span className="live-story-name">{displayName(l.users)}</span>
+            <span className="live-story-meta">
+              <Icon name="visibility" size={13} /> {l.viewer_count || 0}
+            </span>
           </Link>
         ))}
       </div>

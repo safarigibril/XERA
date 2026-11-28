@@ -1,0 +1,73 @@
+/* Notifications XERA1 : photo de l'auteur + pastille du type (façon réseaux sociaux). */
+.notif-group + .notif-group { margin-top: 18px; }
+.notif-group-title {
+  margin: 0 4px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-2);
+}
+.notif-list { padding: 4px; }
+.notif-item {
+  gap: 14px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  align-items: center;
+}
+.notif-item.is-unread {
+  background: color-mix(in srgb, var(--violet) 9%, transparent);
+}
+.notif-item.is-unread::after { content: none; }
+.notif-face {
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 52px;
+}
+.notif-face .avatar { border-radius: 50%; }
+.notif-type {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  border: 2.5px solid var(--card-bg);
+}
+.notif-face-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+}
+:is(.notif-type, .notif-face-icon).is-follow { background: #3b82f6; }
+:is(.notif-type, .notif-face-icon).is-fire { background: linear-gradient(135deg, #fb923c, #ef4444); }
+:is(.notif-type, .notif-face-icon).is-live { background: #ef4444; }
+:is(.notif-type, .notif-face-icon).is-success { background: var(--success); }
+:is(.notif-type, .notif-face-icon).is-gold { background: #d4a017; }
+:is(.notif-type, .notif-face-icon).is-violet { background: var(--violet); }
+.notif-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 14.5px;
+  line-height: 1.35;
+}
+.notif-text strong { font-weight: 650; }
+.notif-text .sub { font-size: 12.5px; }
+.notif-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--violet);
+}
+.notif-follow { flex: none; }
+@media (max-width: 420px) {
+  .notif-follow { padding: 0 10px; font-size: 12px; }
+}
