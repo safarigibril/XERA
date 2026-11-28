@@ -681,7 +681,7 @@
   color: var(--text-3);
 }
 
-/* ---------- Badges XERA (identiques à l'ancienne interface) ---------- */
+/* ---------- Badges XERA1 (identiques à l'ancienne interface) ---------- */
 .name-badges {
   display: inline-flex;
   align-items: center;
@@ -956,4 +956,26 @@
   .ill .ill-float {
     animation: none;
   }
+}
+
+/* ---------- Galerie d'avatars XERA1 ---------- */
+.avatar-gallery { display: grid; gap: 10px; }
+.avatar-gallery-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.avatar-gallery-random {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text); font-size: 13px; cursor: pointer;
+}
+.avatar-gallery-random:hover { border-color: var(--violet); }
+.avatar-gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px; }
+.avatar-gallery-item {
+  position: relative; aspect-ratio: 1; padding: 0; border-radius: 50%; overflow: hidden; cursor: pointer;
+  border: 2px solid transparent; background: var(--surface-2);
+  transition: transform var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+}
+.avatar-gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar-gallery-item:hover { transform: scale(1.06); }
+.avatar-gallery-item.is-on { border-color: var(--violet); box-shadow: 0 0 0 3px var(--violet-soft); }
+.avatar-gallery-check {
+  position: absolute; right: 2px; bottom: 2px; width: 20px; height: 20px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--violet); color: #fff;
 }

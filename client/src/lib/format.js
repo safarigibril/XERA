@@ -64,5 +64,5 @@ export function stageLabel(value) {
 /** Nom affichable : certains anciens comptes ont un nom vide ou « undefined undefined ». */
 export function displayName(user) {
   const name = String(user?.name || '').replace(/\b(undefined|null)\b/gi, '').trim();
-  return name || 'Membre XERA';
+  return name || 'Membre XERA1';
 }

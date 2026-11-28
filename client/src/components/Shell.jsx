@@ -17,7 +17,7 @@ export function Brand({ compact = false }) {
   return (
     <Link to="/" className="brand" aria-label="XERA1, accueil">
       <img src="/icons/logo.png" alt="" />
-      {!compact && <span>XERA</span>}
+      {!compact && <span>XERA1</span>}
     </Link>
   );
 }

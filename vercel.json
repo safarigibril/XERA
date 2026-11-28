@@ -29,6 +29,10 @@
             "destination": "/client/dist/medias/:path*"
         },
         {
+            "source": "/avatars/:path*",
+            "destination": "/client/dist/avatars/:path*"
+        },
+        {
             "source": "/",
             "destination": "/api/home"
         },
@@ -185,7 +189,7 @@
             "destination": "/client/dist/index.html"
         },
         {
-            "source": "/((?!api/|assets/|icons/|medias/|client/|manifest.json|robots.txt|sw.js|favicon).*)",
+            "source": "/((?!api/|assets/|icons/|medias/|avatars/|client/|manifest.json|robots.txt|sw.js|favicon).*)",
             "destination": "/client/dist/index.html"
         }
     ],

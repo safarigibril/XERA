@@ -15,7 +15,7 @@ export function AuthProvider({ children }) {
         // Premier passage (nouveau compte, Google…) : crée la fiche publique,
         // sans quoi le profil est « introuvable » et rien ne peut être publié.
         const base = buildAuthProfileData(authUser);
-        const name = String(base.name || '').replace(/\b(undefined|null)\b/gi, '').trim() || (authUser.email || '').split('@')[0] || 'Membre XERA';
+        const name = String(base.name || '').replace(/\b(undefined|null)\b/gi, '').trim() || (authUser.email || '').split('@')[0] || 'Membre XERA1';
         const { data: created } = await supabase
           .from('users')
           .upsert({ id: authUser.id, name, avatar: base.avatar || null, account_type: 'personal', account_subtype: 'fan', updated_at: new Date().toISOString() }, { onConflict: 'id' })

@@ -99,7 +99,7 @@ function NativeAuthReturn() {
       if (!res.handled) return;
       if (res.error) toast('error', 'Connexion Google impossible', res.error);
       else {
-        toast('success', 'Bienvenue sur XERA');
+        toast('success', 'Bienvenue sur XERA1');
         navigate('/', { replace: true });
       }
     });

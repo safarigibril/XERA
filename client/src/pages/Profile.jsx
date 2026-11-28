@@ -4,6 +4,7 @@ import { TopBar } from '../components/Shell';
 import Icon from '../components/Icon';
 import ContentCard from '../components/ContentCard';
 import ArcCard from '../components/ArcCard';
+import AvatarGallery from '../components/AvatarGallery';
 import { Avatar, Button, CardSkeleton, EmptyState, IconLink, Sheet } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { useUi } from '../contexts/UiContext';
@@ -81,6 +82,7 @@ function EditProfileSheet({ open, onClose, profile, onSaved }) {
           </span>
           <input type="file" accept="image/*" hidden onChange={pickAvatar} />
         </label>
+        <AvatarGallery value={form.avatar} onPick={(url) => setForm((f) => ({ ...f, avatar: url }))} />
         <div className="field">
           <label htmlFor="p-name">Nom</label>
           <input id="p-name" className="input" value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} required maxLength={60} />

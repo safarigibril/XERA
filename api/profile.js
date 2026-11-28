@@ -48,11 +48,17 @@ module.exports = async (req, res) => {
     if (userId) {
         try {
             // Fetch public user profile
-            const { data: user } = await supabase
+            // Les liens sociaux sont dans social_links (jsonb) : les colonnes
+            // username/website/github/twitter/linkedin n'existent pas (erreur 400).
+            const { data: row } = await supabase
                 .from("users")
-                .select("id, name, username, bio, avatar, title, website, github, twitter, linkedin")
+                .select("id, name, bio, avatar, title, social_links")
                 .eq("id", userId)
                 .maybeSingle();
+            const links = (row && row.social_links) || {};
+            const user = row
+                ? { ...row, website: links.website || links.site || null, github: links.github || null, twitter: links.twitter || links.x || null, linkedin: links.linkedin || null }
+                : null;
 
             if (user) {
                 userObj = user;

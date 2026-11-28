@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { recordInteraction } from '../services/feedAlgo';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Icon from './Icon';
 import { Avatar, Badge, Button, IconButton, Sheet, UserName } from './ui';
 import { compact, displayName, STATE_META, timeAgo } from '../lib/format';
@@ -14,6 +14,7 @@ import { setTraceValidation } from '../services/pages';
 import { useMyPages } from '../hooks/useMyPages';
 import MediaViewer from './MediaViewer';
 import { supabase } from '../services/supabase';
+import { REPORT_REASONS, feedPrefs, reportContent } from '../services/feed';
 
 export function StateBadge({ state }) {
   const meta = STATE_META[state];
@@ -25,10 +26,44 @@ export function StateBadge({ state }) {
   );
 }
 
-/** Carte d'une preuve (trace de progression) dans le fil. */
-export default function ContentCard({ content, encouraged, milestone, index = 0, allowValidation = false }) {
+/** Hashtags d'état de l'ADN XERA (ancienne interface : #Victoire, #Bloqué, #Pause). */
+const STATE_TAG = { success: '#Victoire', failure: '#Bloqué', pause: '#Pause' };
+
+/** Vidéo du fil : se lance en muet quand elle est visible, se met en pause sinon. */
+function FeedVideo({ src, poster }) {
+  const ref = useRef();
+  const [muted, setMuted] = useState(true);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v || !('IntersectionObserver' in window)) return undefined;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting && e.intersectionRatio >= 0.6) v.play().catch(() => {});
+        else v.pause();
+      },
+      { threshold: [0, 0.6] },
+    );
+    io.observe(v);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div className="post-video">
+      <video ref={ref} src={src} poster={poster || undefined} muted={muted} loop playsInline preload="metadata" controls={!muted} onClick={(e) => e.stopPropagation()} />
+      <button type="button" className="post-video-sound" onClick={(e) => (e.stopPropagation(), setMuted((m) => !m))} aria-label={muted ? 'Activer le son' : 'Couper le son'}>
+        <Icon name={muted ? 'volume_off' : 'volume_up'} size={18} />
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Carte d'une preuve (trace de progression) dans le fil.
+ * `onHide(content, why)` : la carte est retirée du fil (masquée, auteur masqué, supprimée…).
+ */
+export default function ContentCard({ content, encouraged, milestone, index = 0, allowValidation = false, onHide }) {
   const { user } = useAuth();
   const { toast } = useUi();
+  const navigate = useNavigate();
   const [on, setOn] = useState(Boolean(encouraged));
   const [busyEnc, setBusyEnc] = useState(false);
 
@@ -50,9 +85,19 @@ export default function ContentCard({ content, encouraged, milestone, index = 0,
   const [removed, setRemoved] = useState(false);
   const [viewer, setViewer] = useState(null);
   const [menu, setMenu] = useState(false);
+  const [reporting, setReporting] = useState(null);
   const [editing, setEditing] = useState(null);
   const [local, setLocal] = useState({});
+  const [saved, setSaved] = useState(() => feedPrefs.saved(user?.id).has(content.id));
+  const [burst, setBurst] = useState(0);
+  const lastTap = useRef(0);
   const mine = user && user.id === content.user_id && !content.page;
+  const isAdmin = user?.id === SUPER_ADMIN_ID;
+
+  function gone(why) {
+    setRemoved(true);
+    onHide?.(content, why);
+  }
 
   async function saveEdit(e) {
     e.preventDefault();
@@ -67,10 +112,10 @@ export default function ContentCard({ content, encouraged, milestone, index = 0,
   }
   async function remove() {
     setMenu(false);
-    if (!window.confirm('Supprimer cette preuve ? Cette action est irréversible.')) return;
+    if (!window.confirm('Supprimer définitivement cette preuve ? Cette action est irréversible.')) return;
     try {
       await deleteContent(content.id);
-      setRemoved(true);
+      gone('deleted');
       toast('success', 'Preuve supprimée');
     } catch (err) {
       toast('error', 'Suppression impossible', err.message);
@@ -90,9 +135,9 @@ export default function ContentCard({ content, encouraged, milestone, index = 0,
       toast('error', 'Action impossible', e.message);
     }
   }
-  const isAdmin = user?.id === SUPER_ADMIN_ID;
 
   async function adminHide() {
+    setMenu(false);
     const reason = window.prompt('Motif du masquage (visible par l’équipe)');
     if (reason === null) return;
     const { error } = await supabase
@@ -100,17 +145,19 @@ export default function ContentCard({ content, encouraged, milestone, index = 0,
       .update({ is_deleted: true, deleted_at: new Date().toISOString(), deleted_reason: reason.trim() || null, deleted_by: user.id })
       .eq('id', content.id);
     if (error) return toast('error', 'Masquage impossible', error.message);
-    setRemoved(true);
+    gone('moderated');
     toast('success', 'Contenu masqué', 'Il n’est plus visible publiquement.');
   }
   const isPagePost = content.author_type === 'PAGE_PRO' && content.page;
   const author = isPagePost ? { id: content.page.id, name: content.page.name, avatar: content.page.avatar_url } : content.users || {};
+  const authorName = isPagePost ? content.page.name : displayName(content.users);
   const authorLink = isPagePost ? `/page/${content.page.slug || content.page.id}` : `/u/${content.user_id}`;
   const arc = content.arcs;
   const media = content.media_url || content.media_urls?.[0];
   const isVideo = content.type === 'video' || /\.(mp4|webm|mov)(\?|$)/i.test(media || '');
   const long = (content.description || '').length > 220;
   const cardRef = useRef();
+  const url = `${PUBLIC_SITE}/share/${content.id}`;
 
   // Vue prolongée (60 % visible pendant 1,5 s) : signal « view » pour l'algorithme.
   useEffect(() => {
@@ -134,15 +181,17 @@ export default function ContentCard({ content, encouraged, milestone, index = 0,
       clearTimeout(timer);
       io.disconnect();
     };
-  }, [user, content]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, content.id]);
 
-  async function toggle() {
+  async function toggle(force) {
     if (!user) {
       toast('info', 'Connectez-vous', 'Créez un compte pour encourager les bâtisseurs.');
       return;
     }
     if (busyEnc) return;
-    const next = !on;
+    const next = force ?? !on;
+    if (next === on) return;
     if (next) recordInteraction(user.id, content, 'like');
     setOn(next);
     setCount((c) => Math.max(0, c + (next ? 1 : -1)));
@@ -163,8 +212,21 @@ export default function ContentCard({ content, encouraged, milestone, index = 0,
     }
   }
 
+  /** Double-tap sur le média : encourage (sans jamais retirer l'encouragement). */
+  function onMediaTap(open) {
+    const now = Date.now();
+    if (now - lastTap.current < 300) {
+      lastTap.current = 0;
+      setBurst((b) => b + 1);
+      toggle(true);
+      return;
+    }
+    lastTap.current = now;
+    if (open) setTimeout(() => lastTap.current && Date.now() - lastTap.current >= 290 && open(), 300);
+  }
+
   async function share() {
-    const url = `${PUBLIC_SITE}/share/${content.id}`;
+    setMenu(false);
     try {
       if (navigator.share) await navigator.share({ title: content.title, url });
       else {
@@ -175,22 +237,55 @@ export default function ContentCard({ content, encouraged, milestone, index = 0,
       /* partage annulé */
     }
   }
+  async function copyLink() {
+    setMenu(false);
+    try {
+      await navigator.clipboard.writeText(url);
+      toast('success', 'Lien copié');
+    } catch {
+      toast('error', 'Copie impossible', url);
+    }
+  }
+  function toggleSaved() {
+    setMenu(false);
+    const now = feedPrefs.toggle(user?.id, 'saved', content.id);
+    setSaved(now);
+    toast('success', now ? 'Preuve enregistrée' : 'Retirée des enregistrements', now ? 'Retrouvez-la dans le filtre « Enregistrés ».' : undefined);
+  }
+  function hidePost() {
+    setMenu(false);
+    feedPrefs.toggle(user?.id, 'hidden', content.id);
+    gone('hidden');
+    toast('success', 'Publication masquée', 'Vous ne la verrez plus dans votre fil.');
+  }
+  function muteAuthor() {
+    setMenu(false);
+    feedPrefs.toggle(user?.id, 'muted', content.user_id);
+    gone('muted');
+    toast('success', `${authorName} masqué`, 'Ses preuves n’apparaîtront plus dans votre fil.');
+  }
+  async function sendReport(e) {
+    e.preventDefault();
+    try {
+      await reportContent({ userId: user.id, content, reason: reporting.reason, note: reporting.note.trim() });
+      setReporting(null);
+      toast('success', 'Signalement envoyé', 'L’équipe XERA1 va examiner cette publication.');
+    } catch (err) {
+      toast('error', 'Signalement impossible', err.message);
+    }
+  }
 
   if (removed) return null;
   content = { ...content, ...local };
   const gallery = [...new Set([media, ...(content.media_urls || [])].filter(Boolean))];
+  const tags = [...new Set([...(content.tags || []), ...(content.hashtags || [])].map((t) => String(t || '').replace(/^#/, '').trim()).filter(Boolean))].slice(0, 6);
+
   return (
     <article ref={cardRef} className={`post card is-${content.state || 'pause'}`} style={{ animationDelay: `${Math.min(index, 6) * 40}ms` }}>
-      {content.day_number != null && content.day_number > 0 && (
-        <span className="post-day" title={`Jour ${content.day_number} du projet`}>
-          <small>Jour</small>
-          {content.day_number}
-        </span>
-      )}
       <header className="post-head">
         <Link to={authorLink} className="row grow" style={{ minWidth: 0 }}>
-          <Avatar user={author} size={42} />
-          <div className="grow">
+          <Avatar user={author} size={44} ring={on} />
+          <div className="grow" style={{ minWidth: 0 }}>
             {isPagePost ? (
               <span className="row post-author" style={{ gap: 6 }}>
                 {author.name}
@@ -201,35 +296,48 @@ export default function ContentCard({ content, encouraged, milestone, index = 0,
               <UserName user={author} className="post-author" />
             )}
             <div className="post-meta">
-              {content.day_number != null && <span>Jour {content.day_number}</span>}
-              {content.day_number != null && <span aria-hidden="true">·</span>}
+              {content.users?.title && !isPagePost && <span className="post-meta-title">{content.users.title}</span>}
+              {content.users?.title && !isPagePost && <span aria-hidden="true">·</span>}
               <span>{timeAgo(content.created_at)}</span>
             </div>
           </div>
         </Link>
-        <StateBadge state={content.state} />
+        {content.day_number != null && content.day_number > 0 && (
+          <span className="post-day" title={`Jour ${content.day_number} du projet`}>
+            <small>Jour</small>
+            {content.day_number}
+          </span>
+        )}
+        <IconButton icon="more_horiz" label="Options de la publication" className="post-more" onClick={() => setMenu(true)} />
       </header>
 
-      {arc?.title && (
-        <Link to={`/arc/${arc.id}`} className="post-arc">
-          <Icon name="flag" size={17} />
-          <span>{arc.title}</span>
-          <Icon name="chevron_right" size={18} />
-        </Link>
-      )}
+      <div className="post-statebar">
+        <StateBadge state={content.state} />
+        {arc?.title && (
+          <Link to={`/arc/${arc.id}`} className="post-arc">
+            <Icon name="flag" size={16} />
+            <span>{arc.title}</span>
+            <Icon name="chevron_right" size={16} />
+          </Link>
+        )}
+      </div>
 
       <div className="post-body">
         {content.title && <h3>{content.title}</h3>}
-        {content.description && (
-          <p className={long && !expanded ? 'clamp' : ''}>
-            {content.description}
-          </p>
-        )}
+        {content.description && <p className={long && !expanded ? 'clamp' : ''}>{content.description}</p>}
         {long && (
           <button className="more" onClick={() => setExpanded((v) => !v)}>
             {expanded ? 'Voir moins' : 'Voir plus'}
           </button>
         )}
+        <div className="post-tags">
+          {STATE_TAG[content.state] && <span className="post-tag is-state">{STATE_TAG[content.state]}</span>}
+          {tags.map((t) => (
+            <Link key={t} to={`/explorer?q=${encodeURIComponent(t)}`} className="post-tag">
+              #{t}
+            </Link>
+          ))}
+        </div>
         {validation.valid && validation.validator && (
           <Link to={`/page/${validation.validator.slug || validation.validator.id}`} className="post-seal">
             <Icon name="workspace_premium" filled size={18} /> Validé par {validation.validator.name}
@@ -243,16 +351,21 @@ export default function ContentCard({ content, encouraged, milestone, index = 0,
       </div>
 
       {media && (
-        <div className={`post-media${gallery.length > 1 ? ' is-gallery' : ''}`}>
+        <div className={`post-media${gallery.length > 1 && !isVideo ? ' is-gallery' : ''}${gallery.length === 3 && !isVideo ? ' is-three' : ''}`} onClick={isVideo ? () => onMediaTap() : undefined}>
           {isVideo ? (
-            <video src={media} poster={content.metadata?.poster_url || undefined} controls playsInline preload="metadata" />
+            <FeedVideo src={media} poster={content.metadata?.poster_url} />
           ) : (
             gallery.slice(0, 4).map((src, i) => (
-              <button key={src} type="button" className="post-media-item" onClick={() => setViewer(src)} aria-label="Voir la photo en grand">
-                <img src={src} alt={content.title || 'Preuve'} loading="lazy" />
+              <button key={src} type="button" className="post-media-item" onClick={() => onMediaTap(() => setViewer(src))} aria-label="Voir la photo en grand (double-tap pour encourager)">
+                <img src={src} alt={content.title || 'Preuve'} loading="lazy" decoding="async" />
                 {i === 3 && gallery.length > 4 && <span className="post-media-more">+{gallery.length - 4}</span>}
               </button>
             ))
+          )}
+          {burst > 0 && (
+            <span key={burst} className="post-burst" aria-hidden="true">
+              <Icon name="local_fire_department" filled size={84} />
+            </span>
           )}
         </div>
       )}
@@ -260,62 +373,54 @@ export default function ContentCard({ content, encouraged, milestone, index = 0,
       {myPages.length > 0 && (
         <div className="seal-actions">
           {myPages.map((page) => {
-            const mine = validation.valid && validation.pageId === page.id;
+            const sealed = validation.valid && validation.pageId === page.id;
             return (
-              <button key={page.id} className={`seal-btn${mine ? ' is-on' : ''}`} onClick={() => toggleSeal(page)}>
-                <Icon name={mine ? 'remove_done' : 'workspace_premium'} filled={!mine} size={18} />
-                {mine ? `Révoquer la validation (${page.name})` : `Accorder le sceau de ${page.name}`}
+              <button key={page.id} className={`seal-btn${sealed ? ' is-on' : ''}`} onClick={() => toggleSeal(page)}>
+                <Icon name={sealed ? 'remove_done' : 'workspace_premium'} filled={!sealed} size={18} />
+                {sealed ? `Révoquer la validation (${page.name})` : `Accorder le sceau de ${page.name}`}
               </button>
             );
           })}
         </div>
       )}
       <MediaViewer src={viewer} alt={content.title} onClose={() => setViewer(null)} />
-      {mine && (
-        <>
-          <Sheet open={menu} onClose={() => setMenu(false)} title="Ma preuve">
-            <div className="list">
-              <button className="list-item" onClick={() => { setMenu(false); setEditing({ title: content.title || '', description: content.description || '', state: content.state || 'success' }); }}>
-                <Icon name="edit" /> <span className="grow">Modifier</span>
-              </button>
-              <button className="list-item" onClick={remove} style={{ color: 'var(--failure)' }}>
-                <Icon name="delete" /> <span className="grow">Supprimer</span>
-              </button>
-            </div>
-          </Sheet>
-          <Sheet open={Boolean(editing)} onClose={() => setEditing(null)} title="Modifier la preuve">
-            {editing && (
-              <form className="stack" onSubmit={saveEdit}>
-                <div className="tabs">
-                  {Object.entries(STATE_META).map(([k, m]) => (
-                    <button key={k} type="button" className={`tab${editing.state === k ? ' is-active' : ''}`} onClick={() => setEditing({ ...editing, state: k })}>
-                      <Icon name={m.icon} /> {m.label}
-                    </button>
-                  ))}
-                </div>
-                <input className="input" value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} maxLength={120} required aria-label="Titre" />
-                <textarea className="textarea" value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} maxLength={3000} aria-label="Texte" />
-                <Button variant="primary" block icon="save">Enregistrer</Button>
-              </form>
-            )}
-          </Sheet>
-        </>
+
+      {(count > 0 || content.views > 0) && (
+        <div className="post-counts">
+          {count > 0 && (
+            <span>
+              <span className="post-counts-fire"><Icon name="local_fire_department" filled size={13} /></span>
+              {compact(count)} encouragement{count > 1 ? 's' : ''}
+            </span>
+          )}
+          <span className="grow" />
+          {content.views > 0 && <span>{compact(content.views)} vue{content.views > 1 ? 's' : ''}</span>}
+        </div>
       )}
+
       <footer className="post-actions">
-        <button className={`react${on ? ' is-on' : ''}`} onClick={toggle} aria-pressed={on}>
+        <button className={`react${on ? ' is-on' : ''}`} onClick={() => toggle()} aria-pressed={on}>
           <Icon name="local_fire_department" filled={on} />
-          <span>{count > 0 ? compact(count) : 'Encourager'}</span>
+          <span>{on ? 'Encouragé' : 'Encourager'}</span>
         </button>
-        {arc?.id && (
+        {arc?.id ? (
           <Link className="react" to={`/arc/${arc.id}`}>
             <Icon name="timeline" />
             <span>Parcours</span>
           </Link>
+        ) : (
+          <Link className="react" to={authorLink}>
+            <Icon name="person" />
+            <span>Profil</span>
+          </Link>
         )}
-        <span className="views">
-          <Icon name="visibility" size={18} />
-          {compact(content.views || 0)}
-        </span>
+        <button className="react react--share" onClick={share} aria-label="Partager">
+          <Icon name="ios_share" />
+          <span>Partager</span>
+        </button>
+        <button className={`react react--icon${saved ? ' is-saved' : ''}`} onClick={toggleSaved} aria-pressed={saved} aria-label={saved ? 'Retirer des enregistrements' : 'Enregistrer'}>
+          <Icon name="bookmark" filled={saved} />
+        </button>
         {!isPagePost && content.users && user?.id !== content.user_id && canReceiveSupport(content.users) && (
           <IconButton
             icon="favorite"
@@ -331,10 +436,105 @@ export default function ContentCard({ content, encouraged, milestone, index = 0,
             }}
           />
         )}
-        {isAdmin && <IconButton icon="shield_person" label="Admin : masquer ce contenu" onClick={adminHide} />}
-        {mine && <IconButton icon="more_horiz" label="Gérer ma preuve" onClick={() => setMenu(true)} />}
-        <IconButton icon="ios_share" label="Partager" onClick={share} />
       </footer>
+
+      {/* ------------------------------------------------ Options */}
+      <Sheet open={menu} onClose={() => setMenu(false)} title="Options">
+        <div className="list post-options">
+          <button className="list-item" onClick={toggleSaved}>
+            <Icon name="bookmark" filled={saved} /> <span className="grow">{saved ? 'Retirer des enregistrements' : 'Enregistrer la preuve'}</span>
+          </button>
+          <button className="list-item" onClick={copyLink}>
+            <Icon name="content_copy" /> <span className="grow">Copier le lien</span>
+          </button>
+          <button className="list-item" onClick={share}>
+            <Icon name="ios_share" /> <span className="grow">Partager…</span>
+          </button>
+          {arc?.id && (
+            <button className="list-item" onClick={() => (setMenu(false), navigate(`/arc/${arc.id}`))}>
+              <Icon name="timeline" /> <span className="grow">Voir tout le parcours « {arc.title} »</span>
+            </button>
+          )}
+          <button className="list-item" onClick={() => (setMenu(false), navigate(authorLink))}>
+            <Icon name="person" /> <span className="grow">Voir le profil de {authorName}</span>
+          </button>
+          {mine && (
+            <>
+              <div className="post-options-sep" />
+              <button className="list-item" onClick={() => { setMenu(false); setEditing({ title: content.title || '', description: content.description || '', state: content.state || 'success' }); }}>
+                <Icon name="edit" /> <span className="grow">Modifier ma preuve</span>
+              </button>
+              <button className="list-item is-danger" onClick={remove}>
+                <Icon name="delete" /> <span className="grow">Supprimer ma preuve</span>
+              </button>
+            </>
+          )}
+          {!mine && user && (
+            <>
+              <div className="post-options-sep" />
+              <button className="list-item" onClick={hidePost}>
+                <Icon name="visibility_off" /> <span className="grow">Masquer cette publication</span>
+              </button>
+              {!isPagePost && (
+                <button className="list-item" onClick={muteAuthor}>
+                  <Icon name="person_off" /> <span className="grow">Ne plus voir les preuves de {authorName}</span>
+                </button>
+              )}
+              <button className="list-item is-danger" onClick={() => (setMenu(false), setReporting({ reason: 'spam', note: '' }))}>
+                <Icon name="flag" /> <span className="grow">Signaler la publication</span>
+              </button>
+            </>
+          )}
+          {isAdmin && !mine && (
+            <>
+              <div className="post-options-sep" />
+              <span className="post-options-label">Administration</span>
+              <button className="list-item" onClick={adminHide}>
+                <Icon name="shield_person" /> <span className="grow">Masquer pour tout le monde (modération)</span>
+              </button>
+              <button className="list-item is-danger" onClick={remove}>
+                <Icon name="delete" /> <span className="grow">Supprimer définitivement</span>
+              </button>
+            </>
+          )}
+        </div>
+      </Sheet>
+
+      <Sheet open={Boolean(reporting)} onClose={() => setReporting(null)} title="Signaler la publication">
+        {reporting && (
+          <form className="stack" onSubmit={sendReport}>
+            <div className="list">
+              {REPORT_REASONS.map(([k, label]) => (
+                <label key={k} className="list-item" style={{ cursor: 'pointer' }}>
+                  <input type="radio" name="report" checked={reporting.reason === k} onChange={() => setReporting({ ...reporting, reason: k })} />
+                  <span className="grow">{label}</span>
+                </label>
+              ))}
+            </div>
+            <textarea className="textarea" placeholder="Précisions (facultatif)" maxLength={500} value={reporting.note} onChange={(e) => setReporting({ ...reporting, note: e.target.value })} aria-label="Précisions" />
+            <Button variant="primary" block icon="flag">Envoyer le signalement</Button>
+          </form>
+        )}
+      </Sheet>
+
+      {mine && (
+        <Sheet open={Boolean(editing)} onClose={() => setEditing(null)} title="Modifier la preuve">
+          {editing && (
+            <form className="stack" onSubmit={saveEdit}>
+              <div className="tabs">
+                {Object.entries(STATE_META).map(([k, m]) => (
+                  <button key={k} type="button" className={`tab${editing.state === k ? ' is-active' : ''}`} onClick={() => setEditing({ ...editing, state: k })}>
+                    <Icon name={m.icon} /> {m.label}
+                  </button>
+                ))}
+              </div>
+              <input className="input" value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} maxLength={120} required aria-label="Titre" />
+              <textarea className="textarea" value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} maxLength={3000} aria-label="Texte" />
+              <Button variant="primary" block icon="save">Enregistrer</Button>
+            </form>
+          )}
+        </Sheet>
+      )}
     </article>
   );
 }

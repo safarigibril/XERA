@@ -4,6 +4,7 @@ import { TopBar } from '../components/Shell';
 import Icon from '../components/Icon';
 import Art from '../components/Illustrations';
 import MediaPicker from '../components/MediaPicker';
+import AvatarGallery from '../components/AvatarGallery';
 import { Avatar, Button, UserName } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { useUi } from '../contexts/UiContext';
@@ -141,7 +142,7 @@ export default function ProfileSettings() {
         if (error) throw error;
       }
       setVreq((l) => [{ type, status: 'pending', created_at: new Date().toISOString() }, ...(l || [])]);
-      toast('success', 'Demande envoyée', 'L’équipe XERA va examiner votre profil.');
+      toast('success', 'Demande envoyée', 'L’équipe XERA1 va examiner votre profil.');
     } catch (e) {
       toast('error', 'Demande impossible', e.message);
     }
@@ -178,6 +179,7 @@ export default function ProfileSettings() {
                   <div className="field"><span className="field-label">Photo de profil</span><MediaPicker value={f.avatar} onChange={(v) => setF({ ...f, avatar: v })} folder="avatars" label="Changer la photo" /></div>
                   <div className="field"><span className="field-label">Bannière</span><MediaPicker value={f.banner} onChange={(v) => setF({ ...f, banner: v })} folder="banners" label="Changer la bannière" /></div>
                 </div>
+                <AvatarGallery value={f.avatar?.url} onPick={(url) => setF({ ...f, avatar: { url, type: 'image' } })} />
                 <div className="field"><label htmlFor="ps-name">Nom d’affichage</label><input id="ps-name" className="input" value={f.name} maxLength={60} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
                 <div className="field"><label htmlFor="ps-title">Titre / rôle</label><input id="ps-title" className="input" value={f.title} maxLength={80} placeholder="Ex. Développeuse mobile · Goma" onChange={(e) => setF({ ...f, title: e.target.value })} /></div>
                 <div className="field"><label htmlFor="ps-bio">Bio</label><textarea id="ps-bio" className="textarea" value={f.bio} maxLength={400} onChange={(e) => setF({ ...f, bio: e.target.value })} /><span className="hint">{f.bio.length}/400</span></div>
@@ -261,7 +263,7 @@ export default function ProfileSettings() {
             {tab === 'verification' && (
               <>
                 <Art name="verified" size={170} />
-                <p className="muted">Le badge vérifié rassure votre communauté. Il est attribué par l’équipe XERA, ou automatiquement avec un abonnement (bleu, ou Gold avec Pro).</p>
+                <p className="muted">Le badge vérifié rassure votre communauté. Il est attribué par l’équipe XERA1, ou automatiquement avec un abonnement (bleu, ou Gold avec Pro).</p>
                 <div className="row" style={{ flexWrap: 'wrap' }}>
                   <Button icon="verified" onClick={() => requestVerification('creator')}>Demander : créateur</Button>
                   <Button icon="groups" onClick={() => requestVerification('staff')}>Demander : équipe / entreprise</Button>

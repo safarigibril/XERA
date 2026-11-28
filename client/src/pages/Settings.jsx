@@ -71,7 +71,7 @@ export default function Settings() {
           <Row
             icon={theme === 'light' ? 'light_mode' : 'dark_mode'}
             title="Thème sombre"
-            sub="Le noir profond d’origine de XERA"
+            sub="Le noir profond d’origine de XERA1"
             onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
             trailing={<span className={`switch${theme !== 'light' ? ' is-on' : ''}`} role="switch" aria-checked={theme !== 'light'} />}
           />
@@ -80,7 +80,7 @@ export default function Settings() {
         <section className="card settings-group">
           <h2>Challenge & partenaires</h2>
           <Row to="/fata" icon="emoji_events" title="Challenge Fata" sub="Compte relié, ARC et étapes" />
-          <Row to="/abonnements" icon="workspace_premium" title="Abonnements XERA" sub="Standard, Medium, Pro, Elite" />
+          <Row to="/abonnements" icon="workspace_premium" title="Abonnements XERA1" sub="Standard, Medium, Pro, Elite" />
           <Row to="/espace-createur" icon="account_balance_wallet" title="Espace créateur" sub="Soutiens, portefeuille et retraits" />
           {user && <ProPageRow userId={user.id} />}
           <Row to="/partenaires" icon="handshake" title="Console partenaire" sub="Commissions et code de réduction" />
@@ -100,7 +100,7 @@ export default function Settings() {
 
         {user?.id === SUPER_ADMIN_ID && (
           <section className="card settings-group">
-            <h2>Équipe XERA</h2>
+            <h2>Équipe XERA1</h2>
             <Row to="/admin" icon="admin_panel_settings" title="Administration" sub="Paiements, retraits, badges, modération" />
           </section>
         )}

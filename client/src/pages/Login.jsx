@@ -100,7 +100,7 @@ export default function Login() {
         setSent(true);
         return;
       }
-      toast('success', mode === 'login' ? 'Bon retour sur XERA' : 'Bienvenue sur XERA');
+      toast('success', mode === 'login' ? 'Bon retour sur XERA1' : 'Bienvenue sur XERA1');
       navigate(redirect, { replace: true });
     } catch (err) {
       setError(err.message || 'Une erreur est survenue.');
@@ -136,7 +136,7 @@ export default function Login() {
         ) : (
           <>
             <div>
-              <h1>{mode === 'login' ? 'Bon retour' : mode === 'signup' ? 'Rejoignez XERA' : mode === 'newpass' ? 'Nouveau mot de passe' : 'Mot de passe oublié'}</h1>
+              <h1>{mode === 'login' ? 'Bon retour' : mode === 'signup' ? 'Rejoignez XERA1' : mode === 'newpass' ? 'Nouveau mot de passe' : 'Mot de passe oublié'}</h1>
               <p className="lead" style={{ marginTop: 6 }}>
                 {mode === 'reset' ? 'Recevez un lien pour le réinitialiser.' : mode === 'newpass' ? 'Choisissez votre nouveau mot de passe.' : 'Montrez ce que vous construisez, jour après jour.'}
               </p>

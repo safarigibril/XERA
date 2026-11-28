@@ -4,6 +4,7 @@
  * (arcs, content, arc_milestone_validations) restent la source de vérité.
  */
 import { supabase } from './supabase';
+import { prepareUpload } from '../lib/compress';
 import { USER_BADGE_COLUMNS } from './badges';
 import {
   DEMO,
@@ -26,7 +27,7 @@ function unwrap({ data, error }) {
 
 // ---------------------------------------------------------------- Fil
 
-export async function fetchFeed({ filter = 'all', limit = 24, userIds } = {}) {
+export async function fetchFeed({ filter = 'all', limit = 24, userIds, before, ids } = {}) {
   if (DEMO) {
     await wait();
     return filter === 'all' ? demoContent : demoContent.filter((c) => c.state === filter);
@@ -38,7 +39,11 @@ export async function fetchFeed({ filter = 'all', limit = 24, userIds } = {}) {
     .order('created_at', { ascending: false })
     .limit(limit);
   if (['success', 'failure', 'pause'].includes(filter)) query = query.eq('state', filter);
+  if (filter === 'video') query = query.eq('type', 'video');
+  if (filter === 'media') query = query.in('type', ['image', 'video']);
   if (userIds?.length) query = query.in('user_id', userIds);
+  if (ids?.length) query = query.in('id', ids);
+  if (before) query = query.lt('created_at', before);
   return unwrap(await query) || [];
 }
 
@@ -265,27 +270,31 @@ export async function nextDayNumber(arcId) {
 
 // ---------------------------------------------------------------- Médias
 
-const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
-
-export async function uploadMedia(userId, file, folder = 'content') {
-  const isImage = IMAGE_TYPES.includes(file.type);
-  const isVideo = file.type.startsWith('video/');
-  if (!isImage && !isVideo) throw new Error('Utilisez une image ou une vidéo.');
-  if (file.size > 200 * 1024 * 1024) throw new Error('Fichier trop lourd (200 Mo maximum).');
+/**
+ * Envoi d'une photo/vidéo vers le bucket « media ». Le fichier passe d'abord par
+ * prepareUpload (limites + compression) : le bucket refuse tout au-delà de 50 Mo.
+ * `onProgress(0..1)` suit la compression vidéo éventuelle.
+ */
+export async function uploadMedia(userId, rawFile, folder = 'content', { onProgress } = {}) {
+  const { file, kind } = await prepareUpload(rawFile, { folder, onProgress });
+  const isVideo = kind === 'video';
   if (DEMO) {
     await wait(600);
-    return { url: URL.createObjectURL(file), type: isVideo ? 'video' : 'image' };
+    return { url: URL.createObjectURL(file), type: kind };
   }
-  const ext = (file.name.split('.').pop() || (isVideo ? 'mp4' : 'jpg')).toLowerCase();
+  const ext = (file.name.split('.').pop() || (isVideo ? 'mp4' : 'webp')).toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
   const path = `${folder}/${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const { error } = await supabase.storage.from('media').upload(path, file, {
     cacheControl: '31536000',
     contentType: file.type,
     upsert: false,
   });
-  if (error) throw new Error(error.message || "Échec de l'envoi du fichier.");
+  if (error) {
+    const msg = /exceeded|too large|maximum allowed size/i.test(error.message || '') ? 'Fichier trop lourd pour le serveur (50 Mo maximum).' : error.message;
+    throw new Error(msg || "Échec de l'envoi du fichier.");
+  }
   const { data } = supabase.storage.from('media').getPublicUrl(path);
-  return { url: data.publicUrl, type: isVideo ? 'video' : 'image' };
+  return { url: data.publicUrl, type: kind, size: file.size };
 }
 
 // ---------------------------------------------------------------- Profils

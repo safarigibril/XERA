@@ -90,7 +90,7 @@ export default function Credits() {
         </p>
         <div style={{ textAlign: 'center' }}>
           <Link to="/" className="btn btn--primary">
-            <Icon name="home" /> Retour à XERA
+            <Icon name="home" /> Retour à XERA1
           </Link>
         </div>
       </main>

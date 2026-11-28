@@ -10,6 +10,7 @@ import './styles/components.css';
 import './styles/layout.css';
 import './styles/pages.css';
 import './styles/landing.css';
+import './styles/feed.css';
 import App from './App.jsx';
 
 createRoot(document.getElementById('root')).render(

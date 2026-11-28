@@ -78,7 +78,7 @@ export default function Explore() {
                         <Avatar user={u} size={44} />
                         <span className="grow">
                           <UserName user={u} className="title" />
-                          <span className="sub" style={{ display: 'block' }}>{u.title || 'Membre XERA'}</span>
+                          <span className="sub" style={{ display: 'block' }}>{u.title || 'Membre XERA1'}</span>
                         </span>
                         <Icon name="chevron_right" />
                       </Link>
@@ -113,7 +113,7 @@ export default function Explore() {
                     <Link key={u.id} to={`/u/${u.id}`} className="card person-chip">
                       <Avatar user={u} size={56} />
                       <UserName user={u} />
-                      <span className="muted">{u.title || 'Membre XERA'}</span>
+                      <span className="muted">{u.title || 'Membre XERA1'}</span>
                     </Link>
                   ))}
                 </div>
@@ -138,7 +138,7 @@ export default function Explore() {
               </div>
             )}
             <div className="section-title">
-              <h2>Aussi sur XERA</h2>
+              <h2>Aussi sur XERA1</h2>
             </div>
             <div className="card list" style={{ padding: 6 }}>
               <Link className="list-item" to="/live/nouveau">
@@ -148,7 +148,7 @@ export default function Explore() {
               </Link>
               <Link className="list-item" to="/abonnements">
                 <span className="lead-icon"><Icon name="workspace_premium" /></span>
-                <span className="grow"><span className="title" style={{ display: 'block' }}>XERA Pro</span><span className="sub">Abonnements et avantages</span></span>
+                <span className="grow"><span className="title" style={{ display: 'block' }}>XERA1 Pro</span><span className="sub">Abonnements et avantages</span></span>
                 <Icon name="chevron_right" />
               </Link>
             </div>

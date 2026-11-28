@@ -1,7 +1,7 @@
 /**
- * Illustrations XERA — compositions abstraites, style Material :
- * formes géométriques arrondies + fragments d'interface XERA qui flottent.
- * Aplats uniquement, 4 couleurs max (violet XERA, or réservé aux validations,
+ * Illustrations XERA1 — compositions abstraites, style Material :
+ * formes géométriques arrondies + fragments d'interface XERA1 qui flottent.
+ * Aplats uniquement, 4 couleurs max (violet XERA1, or réservé aux validations,
  * une teinte froide, un neutre zinc), aucun personnage.
  * Couleurs via variables CSS (--ill-*) pour suivre le thème.
  *

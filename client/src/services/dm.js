@@ -6,6 +6,7 @@
  *   <conversation>/<expéditeur>/<fichier>, lues par téléchargement authentifié ;
  * - anti-spam, blocage, confidentialité et signalement appliqués côté base.
  */
+import { compressImage } from '../lib/compress';
 import { supabase } from './supabase';
 import { USER_BADGE_COLUMNS } from './badges';
 import { DEMO, demoInbox, demoMessages } from './demo';
@@ -82,7 +83,7 @@ export async function fetchInbox() {
     })
     .map((r) => ({
       id: r.conversation_id,
-      other: byId[r.other_user_id] || { id: r.other_user_id, name: 'Membre XERA' },
+      other: byId[r.other_user_id] || { id: r.other_user_id, name: 'Membre XERA1' },
       unreadCount: Number(r.unread_count) || 0,
       muted: r.muted === true,
       lastMessage: r.last_message || null,
@@ -129,7 +130,8 @@ export function validateAttachment(file) {
   return null;
 }
 
-export async function sendMessage({ conversationId, senderId, body, replyToId, file }) {
+export async function sendMessage({ conversationId, senderId, body, replyToId, file: rawFile }) {
+  let file = rawFile;
   const text = String(body || '').trim();
   if (!text && !file) throw new Error(ERRORS.DM_EMPTY_MESSAGE);
   if (text.length > DM_MAX_LENGTH) throw new Error(ERRORS.DM_MESSAGE_TOO_LONG);
@@ -139,6 +141,14 @@ export async function sendMessage({ conversationId, senderId, body, replyToId, f
   if (replyToId) payload.reply_to_id = replyToId;
 
   let uploadedPath = null;
+  if (file && file.type.startsWith('image/') && file.type !== 'image/gif') {
+    // Photos des messages : même compression que le fil (WebP redimensionné).
+    try {
+      file = await compressImage(file, { folder: 'content' });
+    } catch {
+      /* on garde l'original, validateAttachment tranchera */
+    }
+  }
   if (file) {
     const problem = validateAttachment(file);
     if (problem) throw new Error(problem);

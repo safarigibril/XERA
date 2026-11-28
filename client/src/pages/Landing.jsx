@@ -62,9 +62,9 @@ const FAQ = [
   ['XERA1, c’est quoi exactement ?', 'Une plateforme où les développeurs et builders documentent leurs projets avec des preuves datées. Votre réputation repose sur ce que vous avez réellement construit.'],
   ['Est-ce gratuit ?', 'Oui. Créer un compte, publier des projets et des preuves est gratuit. Les abonnements Standard, Medium et Pro ajoutent le badge vérifié, plus de visibilité et les soutiens.'],
   ['Qu’est-ce qu’un ARC ?', 'Un projet avec un objectif, une description et des jalons. Chaque preuve publiée s’y rattache et fait avancer la progression.'],
-  ['Comment obtenir le badge vérifié ?', 'En le demandant depuis vos réglages : l’équipe XERA examine votre profil. Il est aussi inclus dans les abonnements (Gold avec le plan Pro).'],
+  ['Comment obtenir le badge vérifié ?', 'En le demandant depuis vos réglages : l’équipe XERA1 examine votre profil. Il est aussi inclus dans les abonnements (Gold avec le plan Pro).'],
   ['Comment fonctionnent les soutiens ?', 'Avec un abonnement Medium ou Pro actif, votre communauté peut vous soutenir par Mobile Money. Vous recevez 75 % de chaque soutien confirmé.'],
-  ['Les entreprises peuvent-elles rejoindre XERA ?', 'Oui, avec une page pro : actualités, projets d’organisation, équipe certifiée, recrutement et validation des preuves de leurs membres.'],
+  ['Les entreprises peuvent-elles rejoindre XERA1 ?', 'Oui, avec une page pro : actualités, projets d’organisation, équipe certifiée, recrutement et validation des preuves de leurs membres.'],
 ];
 
 /** Apparition au défilement (désactivée si les animations sont réduites). */
@@ -111,7 +111,7 @@ function ProductMock() {
       </div>
       <div className="lx-product-body">
         <aside className="lx-side">
-          <span className="lx-logo"><img src="/icons/logo.png" alt="" /> XERA</span>
+          <span className="lx-logo"><img src="/icons/logo.png" alt="" /> XERA1</span>
           {[[Home, 'Accueil', true], [Compass, 'Explorer'], [MessageCircle, 'Messages'], [Bell, 'Notifications'], [Trophy, 'Challenge Fata']].map(([I, l, on]) => (
             <span key={l} className={`lx-snav${on ? ' is-on' : ''}`}><I size={16} /> {l}</span>
           ))}
@@ -240,9 +240,9 @@ export default function Landing() {
       <a href="#contenu" className="lx-skip">Aller au contenu</a>
       <header className={`lx-nav${scrolled ? ' is-scrolled' : ''}`}>
         <div className="lx-wrap lx-nav-in">
-          <Link to="/" className="lx-brand" aria-label="XERA, accueil">
+          <Link to="/" className="lx-brand" aria-label="XERA1, accueil">
             <img src="/icons/logo.png" alt="" />
-            XERA
+            XERA1
           </Link>
           <nav className="lx-links" aria-label="Sections">
             <a href="#comment">Comment ça marche</a>
@@ -282,7 +282,7 @@ export default function Landing() {
         </section>
 
         {/* Preuves */}
-        <section className="lx-proofband" aria-label="XERA en chiffres">
+        <section className="lx-proofband" aria-label="XERA1 en chiffres">
           <div className="lx-wrap">
             <div className="lx-stats reveal">
               <Stat value={stats?.projects} label="projets publiés" />
@@ -290,7 +290,7 @@ export default function Landing() {
               <Stat value={stats?.milestones} label="jalons validés" />
               <Stat value={stats?.verified} label="builders vérifiés" />
             </div>
-            <p className="lx-partners-title">Ils construisent sur XERA</p>
+            <p className="lx-partners-title">Ils construisent sur XERA1</p>
             <div className="lx-partners">
               {PARTNERS.map((p) => (
                 <img key={p.alt} src={p.src} alt={p.alt} loading="lazy" />
@@ -336,11 +336,11 @@ export default function Landing() {
             <div className="reveal">
               <span className="lx-eyebrow">Badges</span>
               <h2>La confiance se voit au premier coup d’œil.</h2>
-              <p className="lx-muted-p">Les badges sont attribués par l’équipe XERA ou inclus dans les abonnements. Ils apparaissent à côté du nom, partout dans l’appli.</p>
+              <p className="lx-muted-p">Les badges sont attribués par l’équipe XERA1 ou inclus dans les abonnements. Ils apparaissent à côté du nom, partout dans l’appli.</p>
               <ul className="lx-badge-list">
                 <li>
                   <img src="/icons/verify-personal.svg" alt="" />
-                  <div><strong>Créateur vérifié</strong><span>Identité et travail confirmés par l’équipe XERA, ou plan Standard / Medium.</span></div>
+                  <div><strong>Créateur vérifié</strong><span>Identité et travail confirmés par l’équipe XERA1, ou plan Standard / Medium.</span></div>
                 </li>
                 <li>
                   <img src="/icons/verify-personal-gold.svg" alt="" />
@@ -390,7 +390,7 @@ export default function Landing() {
             <div className="lx-wrap">
               <header className="lx-head lx-head-row reveal">
                 <div>
-                  <span className="lx-eyebrow">En ce moment sur XERA</span>
+                  <span className="lx-eyebrow">En ce moment sur XERA1</span>
                   <h2>Des projets qui avancent.</h2>
                 </div>
                 <Link to="/explorer" className="lx-btn-ghost">Tout explorer <ArrowRight size={16} /></Link>

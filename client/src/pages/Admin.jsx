@@ -11,6 +11,9 @@ import { SUPER_ADMIN_ID, USER_BADGE_COLUMNS } from '../services/badges';
 import { supabase } from '../services/supabase';
 import { DEMO } from '../services/demo';
 import { timeAgo } from '../lib/format';
+import AdCard from '../components/AdCard';
+import MediaPicker from '../components/MediaPicker';
+import { AD_THEMES } from '../services/feed';
 
 const TABS = [
   ['pulse', 'monitoring', 'Vue d’ensemble'],
@@ -18,6 +21,7 @@ const TABS = [
   ['withdrawals', 'account_balance_wallet', 'Retraits'],
   ['codes', 'sell', 'Codes promo'],
   ['partners', 'handshake', 'Partenariats'],
+  ['ads', 'ads_click', 'Pubs XERA1'],
   ['announcements', 'campaign', 'Annonces'],
   ['badges', 'verified', 'Badges'],
   ['moderation', 'gavel', 'Modération'],
@@ -363,6 +367,174 @@ function Partners() {
   );
 }
 
+// ---------------------------------------------------------------- Pubs XERA1
+
+const AD_EMPTY = { id: null, title: '', body: '', tagline: '', image: null, cta_label: 'En savoir plus', cta_url: '', advertiser_name: 'XERA1', theme: 'violet', layout: 'image', every_n: 6, priority: 0, is_active: true, starts_at: '', ends_at: '' };
+const toLocalInput = (v) => (v ? new Date(Date.parse(v) - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '');
+
+function Ads() {
+  const { user } = useAuth();
+  const { toast } = useUi();
+  const [f, setF] = useState(AD_EMPTY);
+  const [busy, setBusy] = useState(false);
+  const { data, error, load } = useLoad(async () => {
+    if (DEMO) return [];
+    const { data: rows, error: e } = await supabase.from('xera_ads').select('*').order('is_active', { ascending: false }).order('created_at', { ascending: false });
+    if (e) throw e;
+    return rows || [];
+  }, []);
+  const set = (k) => (e) => setF({ ...f, [k]: e?.target ? (e.target.type === 'checkbox' ? e.target.checked : e.target.value) : e });
+
+  async function save(e) {
+    e.preventDefault();
+    setBusy(true);
+    const row = {
+      title: f.title.trim(),
+      body: f.body.trim(),
+      tagline: f.tagline.trim() || null,
+      image_url: f.image?.url || null,
+      cta_label: f.cta_label.trim() || 'En savoir plus',
+      cta_url: f.cta_url.trim() || null,
+      advertiser_name: f.advertiser_name.trim() || 'XERA1',
+      theme: f.theme,
+      layout: f.layout,
+      every_n: Math.min(50, Math.max(3, Number(f.every_n) || 6)),
+      priority: Number(f.priority) || 0,
+      is_active: f.is_active,
+      starts_at: f.starts_at ? new Date(f.starts_at).toISOString() : null,
+      ends_at: f.ends_at ? new Date(f.ends_at).toISOString() : null,
+    };
+    try {
+      if (row.cta_url && !/^(https?:\/\/|\/)/i.test(row.cta_url)) throw new Error('Le lien doit commencer par https:// ou /');
+      const q = f.id ? supabase.from('xera_ads').update(row).eq('id', f.id) : supabase.from('xera_ads').insert({ ...row, created_by: user.id });
+      const { error: err } = await q;
+      if (err) throw err;
+      toast('success', f.id ? 'Publicité modifiée' : 'Publicité publiée', row.is_active ? 'Elle apparaît dans le fil.' : 'Elle est enregistrée en pause.');
+      setF(AD_EMPTY);
+      load();
+    } catch (err) {
+      toast('error', 'Enregistrement impossible', err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function toggle(ad) {
+    const { error: err } = await supabase.from('xera_ads').update({ is_active: !ad.is_active }).eq('id', ad.id);
+    if (err) return toast('error', 'Action impossible', err.message);
+    load();
+  }
+  async function remove(ad) {
+    if (!window.confirm(`Supprimer la publicité « ${ad.title} » ?`)) return;
+    const { error: err } = await supabase.from('xera_ads').delete().eq('id', ad.id);
+    if (err) return toast('error', 'Suppression impossible', err.message);
+    if (f.id === ad.id) setF(AD_EMPTY);
+    load();
+  }
+  function edit(ad) {
+    setF({
+      id: ad.id, title: ad.title, body: ad.body || '', tagline: ad.tagline || '', image: ad.image_url ? { url: ad.image_url, type: 'image' } : null,
+      cta_label: ad.cta_label || '', cta_url: ad.cta_url || '', advertiser_name: ad.advertiser_name || 'XERA1', theme: ad.theme, layout: ad.layout,
+      every_n: ad.every_n, priority: ad.priority, is_active: ad.is_active, starts_at: toLocalInput(ad.starts_at), ends_at: toLocalInput(ad.ends_at),
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  const preview = { ...f, image_url: f.image?.url || null, title: f.title || 'Titre de votre publicité', body: f.body };
+  const live = (ad) => ad.is_active && (!ad.starts_at || Date.parse(ad.starts_at) <= Date.now()) && (!ad.ends_at || Date.parse(ad.ends_at) > Date.now());
+
+  return (
+    <div className="stack">
+      <div className="ads-admin">
+        <form className="card card--pad stack" onSubmit={save}>
+          <h3 style={{ fontSize: 16 }}>{f.id ? 'Modifier la publicité' : 'Nouvelle publicité XERA1'}</h3>
+          <div className="field"><label htmlFor="ad-title">Titre</label><input id="ad-title" className="input" value={f.title} onChange={set('title')} maxLength={120} required placeholder="Ex. Passez Pro et boostez vos preuves" /></div>
+          <div className="field"><label htmlFor="ad-body">Texte</label><textarea id="ad-body" className="textarea" value={f.body} onChange={set('body')} maxLength={1500} placeholder="Le message affiché au-dessus du visuel" /><span className="hint">{f.body.length}/1500</span></div>
+          <div className="field"><span className="field-label">Visuel (compressé automatiquement)</span><MediaPicker value={f.image} onChange={(v) => setF({ ...f, image: v?.type === 'video' ? null : v })} folder="ads" label="Ajouter une image" /><span className="hint">Sans image : visuel XERA1 généré avec le titre. Format conseillé 1200 × 628.</span></div>
+          <div className="ps-two">
+            <div className="field"><label htmlFor="ad-adv">Annonceur</label><input id="ad-adv" className="input" value={f.advertiser_name} onChange={set('advertiser_name')} maxLength={80} /></div>
+            <div className="field"><label htmlFor="ad-tag">Accroche (sous l’annonceur)</label><input id="ad-tag" className="input" value={f.tagline} onChange={set('tagline')} maxLength={80} placeholder="Ex. Offre de lancement" /></div>
+          </div>
+          <div className="ps-two">
+            <div className="field"><label htmlFor="ad-cta">Texte du bouton</label><input id="ad-cta" className="input" value={f.cta_label} onChange={set('cta_label')} maxLength={40} /></div>
+            <div className="field"><label htmlFor="ad-url">Lien du bouton</label><input id="ad-url" className="input" value={f.cta_url} onChange={set('cta_url')} placeholder="/abonnements ou https://…" /></div>
+          </div>
+          <div className="field">
+            <span className="field-label">Couleurs</span>
+            <div className="ads-themes">
+              {Object.entries(AD_THEMES).map(([k, t]) => (
+                <button key={k} type="button" className={`ads-theme${f.theme === k ? ' is-on' : ''}`} style={{ '--ad-a': t.a, '--ad-b': t.b }} onClick={() => setF({ ...f, theme: k })}>
+                  <i /> {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="field">
+            <span className="field-label">Mise en page</span>
+            <div className="tabs">
+              {[['image', 'image', 'Grand visuel'], ['banner', 'panorama', 'Bannière'], ['text', 'notes', 'Texte seul']].map(([k, i, l]) => (
+                <button key={k} type="button" className={`tab${f.layout === k ? ' is-active' : ''}`} onClick={() => setF({ ...f, layout: k })}><Icon name={i} /> {l}</button>
+              ))}
+            </div>
+          </div>
+          <div className="ps-two">
+            <div className="field"><label htmlFor="ad-n">Une pub toutes les… preuves</label><input id="ad-n" className="input" type="number" min="3" max="50" value={f.every_n} onChange={set('every_n')} /></div>
+            <div className="field"><label htmlFor="ad-p">Priorité (plus haut = d’abord)</label><input id="ad-p" className="input" type="number" value={f.priority} onChange={set('priority')} /></div>
+          </div>
+          <div className="ps-two">
+            <div className="field"><label htmlFor="ad-s">Début (facultatif)</label><input id="ad-s" className="input" type="datetime-local" value={f.starts_at} onChange={set('starts_at')} /></div>
+            <div className="field"><label htmlFor="ad-e">Fin (facultatif)</label><input id="ad-e" className="input" type="datetime-local" value={f.ends_at} onChange={set('ends_at')} /></div>
+          </div>
+          <label className="row" style={{ fontSize: 14 }}><input type="checkbox" checked={f.is_active} onChange={set('is_active')} /> Diffuser dans le fil</label>
+          <div className="row">
+            <Button variant="primary" icon="ads_click" loading={busy}>{f.id ? 'Enregistrer' : 'Publier la pub'}</Button>
+            {f.id && <Button type="button" variant="ghost" onClick={() => setF(AD_EMPTY)}>Annuler</Button>}
+          </div>
+        </form>
+        <div className="ads-preview">
+          <span className="ads-preview-label">Aperçu dans le fil</span>
+          <AdCard ad={preview} preview />
+        </div>
+      </div>
+
+      <ErrorLine error={error} />
+      <section className="card card--pad stack">
+        <h3 style={{ fontSize: 16 }}>Publicités ({data?.length || 0})</h3>
+        {!data ? (
+          <Skeleton height={80} radius={12} />
+        ) : !data.length ? (
+          <p className="muted">Aucune publicité pour le moment. Créez-en une ci-dessus.</p>
+        ) : (
+          <div className="list">
+            {data.map((ad) => {
+              const t = AD_THEMES[ad.theme] || AD_THEMES.violet;
+              const ctr = ad.impressions ? ((ad.clicks / ad.impressions) * 100).toFixed(1) : '0';
+              return (
+                <div key={ad.id} className="list-item ads-row">
+                  <span className="ads-thumb" style={{ '--ad-a': t.a, '--ad-b': t.b }}>{ad.image_url && <img src={ad.image_url} alt="" />}</span>
+                  <span style={{ minWidth: 0 }}>
+                    <span className="title" style={{ display: 'block' }}>{ad.title}</span>
+                    <span className="ads-stats">
+                      <Badge tone={live(ad) ? 'success' : 'pause'}>{live(ad) ? 'En ligne' : ad.is_active ? 'Programmée / terminée' : 'En pause'}</Badge>
+                      <span><Icon name="visibility" size={15} /> {ad.impressions} vues</span>
+                      <span><Icon name="ads_click" size={15} /> {ad.clicks} clics ({ctr} %)</span>
+                      <span>1 / {ad.every_n} preuves</span>
+                      {ad.ends_at && <span>jusqu’au {fmtDate(ad.ends_at)}</span>}
+                    </span>
+                  </span>
+                  <span className="row" style={{ gap: 4 }}>
+                    <button className={`switch${ad.is_active ? ' is-on' : ''}`} role="switch" aria-checked={ad.is_active} aria-label="Diffuser" onClick={() => toggle(ad)} />
+                    <button className="icon-btn" onClick={() => edit(ad)} aria-label="Modifier"><Icon name="edit" /></button>
+                    <button className="icon-btn" onClick={() => remove(ad)} aria-label="Supprimer" style={{ color: 'var(--failure)' }}><Icon name="delete" /></button>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function Announcements() {
   const { user } = useAuth();
   const { toast } = useUi();
@@ -433,8 +605,14 @@ function Badges() {
   const [pagesFound, setPagesFound] = useState([]);
   const { data: requests, load } = useLoad(async () => {
     if (DEMO) return [];
-    const { data } = await supabase.from('verification_requests').select(`id, user_id, type, status, created_at, users(${USER_BADGE_COLUMNS})`).eq('status', 'pending').order('created_at');
-    return data || [];
+    // Pas de clé étrangère verification_requests → users : on charge les membres à part
+    // (la jointure `users(...)` renvoyait une erreur 400 et l'onglet restait vide).
+    const { data, error } = await supabase.from('verification_requests').select('id, user_id, type, status, created_at').eq('status', 'pending').order('created_at');
+    if (error) throw error;
+    const ids = [...new Set((data || []).map((r) => r.user_id).filter(Boolean))];
+    const { data: people } = ids.length ? await supabase.from('users').select(USER_BADGE_COLUMNS).in('id', ids) : { data: [] };
+    const byId = new Map((people || []).map((u) => [u.id, u]));
+    return (data || []).map((r) => ({ ...r, users: byId.get(r.user_id) || null }));
   }, []);
 
   async function grant(userId, t, giftPlan) {
@@ -696,7 +874,7 @@ function Email() {
   );
 }
 
-const PANELS = { pulse: Pulse, payments: Payments, withdrawals: Withdrawals, codes: Codes, partners: Partners, announcements: Announcements, badges: Badges, moderation: Moderation, bots: Bots, feedback: Feedback, email: Email };
+const PANELS = { pulse: Pulse, payments: Payments, withdrawals: Withdrawals, codes: Codes, partners: Partners, ads: Ads, announcements: Announcements, badges: Badges, moderation: Moderation, bots: Bots, feedback: Feedback, email: Email };
 
 export default function Admin({ initialTab = 'pulse' }) {
   const { user } = useAuth();

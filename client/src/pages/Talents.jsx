@@ -24,7 +24,7 @@ export default function Talents() {
   const [role, setRole] = useState('');
   const [list, setList] = useState(null);
   const timer = useRef();
-  // Réservé aux abonnés Elite actifs (et à l'équipe XERA).
+  // Réservé aux abonnés Elite actifs (et à l'équipe XERA1).
   const hasElite = DEMO || (user && (user.id === SUPER_ADMIN_ID || (String(user.plan || '').toLowerCase() === 'elite' && isPlanActive(user))));
 
   useEffect(() => {
@@ -95,7 +95,7 @@ export default function Talents() {
                     <span className="talent-rank">#{i + 1}</span>
                     <Avatar user={t} size={64} ring={i < 3} />
                     <UserName user={t} className="talent-name" />
-                    <span className="muted talent-title">{t.title || 'Membre XERA'}</span>
+                    <span className="muted talent-title">{t.title || 'Membre XERA1'}</span>
                     <div className="talent-score">
                       <div className="progress"><span style={{ width: `${Math.min(100, Number(t.momentum_score) || 0)}%` }} /></div>
                       <strong>{Math.round(Number(t.momentum_score) || 0)}</strong>

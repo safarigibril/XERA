@@ -39,7 +39,7 @@ function LinkCard({ status, revoked, onLink, linking }) {
         </span>
         <div className="grow">
           <strong>Compte Fata non relié</strong>
-          <small>Reliez votre compte pour que vos actions XERA comptent dans le challenge.</small>
+          <small>Reliez votre compte pour que vos actions XERA1 comptent dans le challenge.</small>
         </div>
       </div>
     );
@@ -111,7 +111,7 @@ export default function Fata() {
 
   // Retour de Fata (contrat §4) : succès ou erreur signalés par le serveur dans l'URL.
   useEffect(() => {
-    if (ctx.fata === 'success' && status?.connected) toast('success', 'Compte Fata relié', 'Vos actions XERA peuvent maintenant compter.');
+    if (ctx.fata === 'success' && status?.connected) toast('success', 'Compte Fata relié', 'Vos actions XERA1 peuvent maintenant compter.');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctx.fata, status?.connected]);
 
@@ -196,7 +196,7 @@ export default function Fata() {
           <div className="stack" style={{ gap: 6 }}>
             <span className="eyebrow">Partenariat</span>
             <h1>Challenge Fata × XERA1</h1>
-            <p>Construisez un vrai projet sur XERA : trois actions, confirmées automatiquement auprès de Fata.</p>
+            <p>Construisez un vrai projet sur XERA1 : trois actions, confirmées automatiquement auprès de Fata.</p>
           </div>
           {challengeId && (
             <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
@@ -374,7 +374,7 @@ export default function Fata() {
                 {doneCount === 3 && !qualification && (
                   <div className="form-note" style={{ marginTop: 12 }}>
                     <Icon name="hourglass_top" />
-                    <span>Les trois étapes XERA sont confirmées. Terminez les conditions restantes sur Fata (XP, profil) pour réussir le challenge.</span>
+                    <span>Les trois étapes XERA1 sont confirmées. Terminez les conditions restantes sur Fata (XP, profil) pour réussir le challenge.</span>
                   </div>
                 )}
               </>
@@ -394,7 +394,7 @@ export default function Fata() {
           <div className="reward">
             <Icon name="emoji_events" filled />
             <strong>Badge Fata</strong>
-            <span>{qualification?.badge_awarded ? 'Attribué sur votre profil.' : 'Affiché sur votre profil XERA.'}</span>
+            <span>{qualification?.badge_awarded ? 'Attribué sur votre profil.' : 'Affiché sur votre profil XERA1.'}</span>
           </div>
           <div className="reward">
             <Icon name="trending_up" />
@@ -415,7 +415,7 @@ export default function Fata() {
           {[
             ['Inscrivez-vous au challenge sur Fata', 'Puis touchez « Continuer sur XERA1 ».'],
             ['Reliez votre compte Fata', 'Une seule fois, réutilisable pour les prochains challenges.'],
-            ['Réalisez les trois actions sur le même ARC', 'XERA les confirme à Fata automatiquement, même si vous fermez l’appli.'],
+            ['Réalisez les trois actions sur le même ARC', 'XERA1 les confirme à Fata automatiquement, même si vous fermez l’appli.'],
             ['Terminez les conditions Fata', 'Fata valide le challenge et attribue les récompenses.'],
           ].map(([title, sub], i) => (
             <li key={i}>

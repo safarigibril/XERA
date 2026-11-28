@@ -221,7 +221,7 @@ function TeamSheet({ open, onClose, page }) {
         </div>
         <div className="input-wrap">
           <Icon name="person_search" />
-          <input className="input" placeholder="Rechercher un membre XERA" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Rechercher un membre" />
+          <input className="input" placeholder="Rechercher un membre XERA1" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Rechercher un membre" />
         </div>
         {found.length > 0 && (
           <div className="list">
@@ -514,7 +514,7 @@ export default function ProPage() {
                         <Avatar user={u} size={38} />
                         <span className="grow">
                           <UserName user={u} className="title" />
-                          <span className="sub" style={{ display: 'block' }}>{u.title || 'Membre XERA'}</span>
+                          <span className="sub" style={{ display: 'block' }}>{u.title || 'Membre XERA1'}</span>
                         </span>
                         <Badge tone="success">{u.matchScore} %</Badge>
                       </Link>

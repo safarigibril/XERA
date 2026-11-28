@@ -1,6 +1,6 @@
 /** Préférences de profil — mêmes valeurs que normalizeProfilePreferences (ancienne interface). */
 export const PROFILE_THEMES = {
-  xera: { label: 'XERA', accent: '#10b981', secondary: '#f59e0b' },
+  xera: { label: 'XERA1', accent: '#10b981', secondary: '#f59e0b' },
   aurora: { label: 'Aurora', accent: '#14b8a6', secondary: '#8b5cf6' },
   ember: { label: 'Ember', accent: '#f97316', secondary: '#ef4444' },
   ocean: { label: 'Ocean', accent: '#38bdf8', secondary: '#2563eb' },

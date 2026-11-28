@@ -671,7 +671,7 @@ function ReportSheet({ open, onClose, message, conversationId }) {
     setBusy(true);
     try {
       await report({ conversationId, messageId: message?.id, reason, details });
-      toast('success', 'Signalement envoyé', 'L’équipe XERA va examiner la situation.');
+      toast('success', 'Signalement envoyé', 'L’équipe XERA1 va examiner la situation.');
       onClose();
     } catch (err) {
       toast('error', 'Signalement impossible', err.message);

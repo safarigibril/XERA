@@ -60,7 +60,7 @@ export default function FataCelebration() {
         <h2 style={{ fontSize: 24 }}>Challenge Fata réussi !</h2>
         <p className="muted" style={{ maxWidth: 360 }}>
           Fata a validé votre parcours. Votre badge est sur votre profil et vos projets sont mis en avant ×{mult} dans le
-          fil XERA.
+          fil XERA1.
         </p>
         <Button variant="primary" size="lg" block icon="rocket_launch" onClick={() => close(true)}>
           Voir mon fil

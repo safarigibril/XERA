@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import Icon from './Icon';
 import { IconButton } from './ui';
 import { uploadMedia } from '../services/data';
+import { LIMITS, formatBytes } from '../lib/compress';
 import { useAuth } from '../contexts/AuthContext';
 import { useUi } from '../contexts/UiContext';
 
@@ -12,16 +13,21 @@ export default function MediaPicker({ value, onChange, folder = 'content', label
   const input = useRef();
   const [busy, setBusy] = useState(false);
   const [over, setOver] = useState(false);
+  const [progress, setProgress] = useState(null);
 
   async function handle(file) {
     if (!file) return;
     setBusy(true);
+    setProgress(null);
     try {
-      onChange(await uploadMedia(user.id, file, folder));
+      const big = file.type.startsWith('video/') && file.size > LIMITS.videoMaxBytes;
+      if (big) toast('info', 'Compression de la vidéo', `${formatBytes(file.size)} : elle est compressée avant l’envoi, gardez la page ouverte.`);
+      onChange(await uploadMedia(user.id, file, folder, { onProgress: big ? setProgress : undefined }));
     } catch (error) {
       toast('error', 'Envoi impossible', error.message);
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   }
 
@@ -53,8 +59,8 @@ export default function MediaPicker({ value, onChange, folder = 'content', label
       }}
     >
       {busy ? <span className="spinner" style={{ width: 30, height: 30 }} /> : <Icon name="add_photo_alternate" />}
-      <strong>{busy ? 'Envoi en cours…' : label}</strong>
-      <span style={{ fontSize: 12.5 }}>JPG, PNG, WebP, GIF ou vidéo</span>
+      <strong>{busy ? (progress != null ? `Compression… ${Math.round(progress * 100)} %` : 'Envoi en cours…') : label}</strong>
+      <span style={{ fontSize: 12.5 }}>Photo (compressée automatiquement) ou vidéo jusqu’à {formatBytes(LIMITS.videoMaxBytes)}, plus lourde = compressée</span>
       <input ref={input} type="file" accept="image/*,video/*" hidden onChange={(e) => handle(e.target.files?.[0])} />
     </div>
   );
